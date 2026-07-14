@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shinigami — AI Agents Ecosystem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#060907;
+  --bg-1:#0b120d;
+  --bg-2:#0f1a12;
+  --line:#1c2b1f;
+  --line-bright:#2d4432;
+  --ink-0:#eef7ec;
+  --ink-1:#9fb3a3;
+  --ink-2:#61756a;
+  --acid:#a6ff00;
+  --acid-dim:#5c8a12;
+  --acid-glow:rgba(166,255,0,.35);
+  --warn:#ff5d5d;
+  --radius:2px;
+  --disp:'Chakra Petch',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg-0);
+  color:var(--ink-0);
+  font-family:var(--mono);
+  font-size:14px;
+  line-height:1.55;
+  overflow-x:hidden;
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+}
+a{color:inherit;text-decoration:none;}
+.wrap{max-width:1240px;margin:0 auto;padding:0 32px;}
+::selection{background:var(--acid);color:#04140a;}
+
+/* ---------- background texture ---------- */
+.grain{
+  position:fixed;inset:0;pointer-events:none;z-index:2;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.scan{
+  position:fixed;inset:0;pointer-events:none;z-index:3;opacity:.4;
+  background:repeating-linear-gradient(to bottom, rgba(166,255,0,.015) 0px, rgba(166,255,0,.015) 1px, transparent 1px, transparent 3px);
+}
+.vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(ellipse at 78% 8%, rgba(166,255,0,.09), transparent 45%),
+             radial-gradient(ellipse at 10% 100%, rgba(166,255,0,.05), transparent 40%);
+}
+
+/* ---------- kanji watermark field ---------- */
+.kanji-field{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+.kanji-field span{
+  position:absolute;color:var(--acid);opacity:0.05;font-family:var(--disp);
+  animation:drift 22s linear infinite;
+}
+@keyframes drift{from{transform:translateY(0);}to{transform:translateY(-40px);}}
+
+/* ---------- nav ---------- */
+header{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(10px);
+  background:rgba(6,9,7,.72);
+  border-bottom:1px solid var(--line);
+}
+nav.wrap{display:flex;align-items:center;justify-content:space-between;height:72px;}
+.logo{display:flex;flex-direction:column;line-height:1;gap:3px;}
+.logo b{
+  font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:.12em;
+  color:var(--ink-0);
+}
+.logo b span{color:var(--acid);}
+.logo small{font-size:9px;letter-spacing:.28em;color:var(--ink-2);}
+.nav-links{display:flex;gap:36px;font-size:12.5px;letter-spacing:.04em;color:var(--ink-1);}
+.nav-links a{position:relative;padding:4px 0;transition:color .2s;}
+.nav-links a:hover,.nav-links a:focus-visible{color:var(--ink-0);}
+.nav-links a::after{
+  content:"";position:absolute;left:0;bottom:-2px;width:0;height:1px;background:var(--acid);
+  transition:width .25s;
+}
+.nav-links a:hover::after{width:100%;}
+.btn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;font-weight:500;
+  padding:10px 20px;border-radius:var(--radius);cursor:pointer;
+  border:1px solid var(--line-bright);background:transparent;color:var(--ink-0);
+  transition:all .2s;white-space:nowrap;
+}
+.btn:hover,.btn:focus-visible{border-color:var(--acid);color:var(--acid);box-shadow:0 0 16px -4px var(--acid-glow);}
+.btn-fill{background:var(--acid);color:#05170a;border-color:var(--acid);font-weight:700;}
+.btn-fill:hover{background:#bfff40;color:#05170a;box-shadow:0 0 22px -2px var(--acid-glow);}
+.btn.wallet.connected{border-color:var(--acid);color:var(--acid);}
+.burger{display:none;background:none;border:1px solid var(--line-bright);color:var(--ink-0);padding:8px 10px;border-radius:var(--radius);}
+
+/* ---------- hero ---------- */
+.hero{position:relative;padding:72px 0 40px;overflow:hidden;}
+.hero-grid{
+  display:grid;grid-template-columns:1.05fr .95fr;gap:24px;align-items:center;
+}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.24em;
+  color:var(--acid);border:1px solid var(--line-bright);padding:6px 12px;border-radius:20px;margin-bottom:24px;
+}
+.eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--acid);box-shadow:0 0 8px 2px var(--acid-glow);animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+h1.title{
+  font-family:var(--disp);font-weight:700;font-size:clamp(52px,7.4vw,96px);
+  letter-spacing:.03em;line-height:.92;color:var(--ink-0);
+  text-shadow:0 0 40px rgba(166,255,0,.12);
+}
+.tagline{
+  font-family:var(--disp);font-size:16px;letter-spacing:.22em;color:var(--acid);
+  margin:18px 0 20px;font-weight:600;
+}
+.lede{max-width:480px;color:var(--ink-1);font-size:14.5px;margin-bottom:34px;}
+.cta-row{display:flex;gap:16px;align-items:center;margin-bottom:44px;flex-wrap:wrap;}
+.cta-row .btn-fill{padding:14px 26px;}
+.link-arrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-0);border-bottom:1px solid var(--line-bright);padding-bottom:2px;transition:.2s;}
+.link-arrow:hover{color:var(--acid);border-color:var(--acid);}
+.link-arrow svg{transition:transform .2s;}
+.link-arrow:hover svg{transform:translateX(4px);}
+
+.stat-bar{
+  display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;margin-bottom:16px;
+}
+.stat-bar div{padding:16px 18px;border-right:1px solid var(--line);}
+.stat-bar div:last-child{border-right:none;}
+.stat-label{display:flex;align-items:center;gap:6px;font-size:9.5px;letter-spacing:.14em;color:var(--ink-2);text-transform:uppercase;margin-bottom:8px;}
+.stat-val{font-family:var(--disp);font-size:22px;font-weight:700;color:var(--ink-0);}
+.stat-val.up{color:var(--acid);}
+
+.index-row{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;
+}
+.index-left{flex:1;min-width:0;}
+.index-title{display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.1em;color:var(--ink-1);margin-bottom:10px;}
+.live-dot{display:inline-flex;align-items:center;gap:5px;color:var(--acid);font-size:10px;font-weight:700;letter-spacing:.1em;}
+.live-dot i{width:6px;height:6px;border-radius:50%;background:var(--acid);animation:pulse 1.5s infinite;}
+svg#sparkline{display:block;width:100%;height:56px;}
+.index-right{text-align:right;}
+.index-num{font-family:var(--disp);font-size:26px;font-weight:700;}
+.index-delta{font-size:12.5px;color:var(--acid);font-weight:600;}
+
+/* hero visual */
+.hero-visual{position:relative;display:flex;justify-content:center;align-items:center;min-height:460px;}
+.halo{
+  position:absolute;width:400px;height:400px;border-radius:50%;
+  border:1px solid var(--acid-dim);
+  box-shadow:0 0 70px -10px var(--acid-glow), inset 0 0 70px -20px var(--acid-glow);
+  animation:spin 40s linear infinite;
+}
+.halo::before{
+  content:"";position:absolute;inset:14px;border-radius:50%;border:1px dashed rgba(166,255,0,.25);
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.figure-wrap{position:relative;z-index:2;width:340px;}
+.figure-wrap svg{width:100%;height:auto;filter:drop-shadow(0 0 30px rgba(166,255,0,.25));}
+.callout{
+  position:absolute;border:1px solid var(--line-bright);background:rgba(9,15,10,.85);backdrop-filter:blur(6px);
+  padding:11px 14px;border-radius:var(--radius);font-size:10.5px;min-width:168px;z-index:3;
+  animation:float 5s ease-in-out infinite;
+}
+.callout b{display:block;color:var(--acid);font-size:10px;letter-spacing:.08em;margin-bottom:3px;}
+.callout span{color:var(--ink-1);font-size:11px;}
+.callout.c1{top:2%;right:-4%;animation-delay:0s;}
+.callout.c2{top:30%;right:-10%;animation-delay:.7s;}
+.callout.c3{top:58%;right:-6%;animation-delay:1.4s;}
+.callout.c4{top:86%;right:2%;animation-delay:2.1s;}
+@keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+
+.launch-box{
+  position:absolute;left:-6%;bottom:-6%;border:1px solid var(--line-bright);background:rgba(9,15,10,.9);
+  padding:16px 20px;border-radius:var(--radius);z-index:3;backdrop-filter:blur(6px);
+}
+.launch-box .lb-title{font-size:10px;letter-spacing:.14em;color:var(--ink-1);margin-bottom:10px;}
+.countdown{display:flex;gap:14px;}
+.countdown div{text-align:center;}
+.countdown b{display:block;font-family:var(--disp);font-size:24px;color:var(--acid);}
+.countdown span{font-size:8.5px;letter-spacing:.12em;color:var(--ink-2);}
+
+@media(max-width:980px){
+  .hero-grid{grid-template-columns:1fr;}
+  .hero-visual{margin-top:40px;min-height:380px;}
+  .callout{position:static;margin:8px 0;animation:none;min-width:0;}
+  .callout-wrap-mobile{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px;}
+  .launch-box{position:static;margin-top:24px;width:100%;}
+  .nav-links{display:none;}
+  .burger{display:inline-flex;}
+  .stat-bar{grid-template-columns:repeat(2,1fr);}
+  .stat-bar div:nth-child(2){border-right:none;}
+}
+
+/* ---------- section frame ---------- */
+section{padding:88px 0;border-top:1px solid var(--line);position:relative;}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:38px;}
+.sec-eyebrow{font-size:11px;letter-spacing:.22em;color:var(--acid);margin-bottom:8px;}
+h2{font-family:var(--disp);font-weight:700;font-size:28px;letter-spacing:.03em;}
+.view-all{font-size:12px;color:var(--ink-1);border-bottom:1px solid var(--line-bright);padding-bottom:2px;transition:.2s;}
+.view-all:hover{color:var(--acid);border-color:var(--acid);}
+
+/* ---------- agent cards ---------- */
+.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;}
+.agent-card{
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:var(--bg-1);
+  transition:border-color .25s, transform .25s;cursor:pointer;
+}
+.agent-card:hover{border-color:var(--acid-dim);transform:translateY(-4px);}
+.agent-card .portrait{
+  aspect-ratio:1/1;position:relative;overflow:hidden;background:radial-gradient(circle at 50% 30%, #16261a, #06090a 75%);
+  display:flex;align-items:center;justify-content:center;
+}
+.agent-card .portrait svg{width:60%;height:60%;filter:drop-shadow(0 0 14px rgba(166,255,0,.3));transition:filter .3s;}
+.agent-card:hover .portrait svg{filter:drop-shadow(0 0 22px rgba(166,255,0,.55));}
+.agent-body{padding:18px;}
+.agent-name-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;}
+.agent-name-row h3{font-family:var(--disp);font-size:16px;font-weight:600;}
+.tag{font-size:8.5px;letter-spacing:.1em;color:var(--acid);border:1px solid var(--acid-dim);padding:3px 7px;border-radius:20px;text-transform:uppercase;}
+.agent-desc{font-size:12px;color:var(--ink-1);margin-bottom:14px;min-height:32px;}
+.agent-price{font-size:13px;color:var(--ink-0);margin-bottom:14px;font-weight:600;}
+.agent-price b{color:var(--acid);}
+.agent-card .btn{width:100%;text-align:center;}
+
+@media(max-width:980px){.agent-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.agent-grid{grid-template-columns:1fr;}}
+
+/* ---------- agent types ---------- */
+.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.type-card{
+  border:1px solid var(--line);border-radius:var(--radius);padding:20px;display:flex;gap:14px;
+  transition:.2s;background:var(--bg-1);
+}
+.type-card:hover{border-color:var(--acid-dim);background:var(--bg-2);}
+.type-card .icon{
+  width:38px;height:38px;flex:none;border:1px solid var(--line-bright);border-radius:var(--radius);
+  display:flex;align-items:center;justify-content:center;color:var(--acid);
+}
+.type-card h4{font-size:12.5px;letter-spacing:.06em;margin-bottom:5px;}
+.type-card p{font-size:11.5px;color:var(--ink-1);}
+@media(max-width:980px){.type-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.type-grid{grid-template-columns:1fr;}}
+
+/* ---------- future / chains ---------- */
+.future{
+  border:1px solid var(--line);border-radius:var(--radius);padding:44px;
+  display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;background:var(--bg-1);
+}
+.future h3{font-family:var(--disp);font-size:22px;margin-bottom:12px;}
+.future p{color:var(--ink-1);font-size:13px;margin-bottom:22px;max-width:420px;}
+.chain-label{font-size:10px;letter-spacing:.2em;color:var(--ink-2);margin-bottom:16px;}
+.chain-row{display:flex;flex-wrap:wrap;gap:14px 26px;}
+.chain-row div{display:flex;align-items:center;gap:8px;font-family:var(--disp);font-size:13px;font-weight:600;color:var(--ink-1);}
+.chain-row i{width:9px;height:9px;border-radius:2px;background:var(--acid);opacity:.8;}
+@media(max-width:820px){.future{grid-template-columns:1fr;padding:28px;}}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line);padding:60px 0 28px;background:var(--bg-1);}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1.2fr;gap:32px;margin-bottom:44px;}
+.foot-brand p{font-size:12px;color:var(--ink-2);margin-top:14px;max-width:220px;}
+.foot-col h5{font-size:10.5px;letter-spacing:.14em;color:var(--ink-2);margin-bottom:14px;text-transform:uppercase;}
+.foot-col a{display:block;font-size:12.5px;color:var(--ink-1);margin-bottom:10px;transition:.2s;}
+.foot-col a:hover{color:var(--acid);}
+.subscribe{display:flex;border:1px solid var(--line-bright);border-radius:var(--radius);overflow:hidden;margin-top:8px;}
+.subscribe input{
+  flex:1;background:transparent;border:none;padding:11px 12px;color:var(--ink-0);font-family:var(--mono);font-size:12px;
+}
+.subscribe input:focus{outline:none;}
+.subscribe button{background:var(--acid);border:none;color:#05170a;padding:0 16px;cursor:pointer;font-weight:700;}
+.sub-msg{font-size:11px;color:var(--acid);margin-top:8px;min-height:14px;}
+.socials{display:flex;gap:10px;margin-top:16px;}
+.socials a{width:32px;height:32px;border:1px solid var(--line-bright);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink-1);}
+.socials a:hover{border-color:var(--acid);color:var(--acid);}
+.foot-bottom{border-top:1px solid var(--line);padding-top:22px;text-align:center;font-size:11px;color:var(--ink-2);letter-spacing:.04em;}
+@media(max-width:900px){.foot-grid{grid-template-columns:1fr 1fr;}}
+
+/* ---------- modal ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(3,6,4,.82);backdrop-filter:blur(4px);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:24px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  width:min(440px,100%);border:1px solid var(--line-bright);background:var(--bg-1);border-radius:var(--radius);
+  padding:28px;position:relative;box-shadow:0 0 60px -10px rgba(166,255,0,.15);
+}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--ink-1);font-size:18px;cursor:pointer;}
+.modal-close:hover{color:var(--acid);}
+.modal .portrait{width:96px;height:96px;margin:0 auto 18px;border-radius:50%;border:1px solid var(--line-bright);
+  display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#16261a,#06090a 75%);}
+.modal .portrait svg{width:56px;filter:drop-shadow(0 0 14px rgba(166,255,0,.4));}
+.modal h3{font-family:var(--disp);text-align:center;font-size:20px;margin-bottom:6px;}
+.modal .tag{display:block;width:fit-content;margin:0 auto 14px;}
+.modal p.desc{text-align:center;color:var(--ink-1);font-size:12.5px;margin-bottom:20px;}
+.modal .stats-mini{display:flex;justify-content:space-around;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin-bottom:20px;}
+.modal .stats-mini div{text-align:center;}
+.modal .stats-mini b{display:block;font-family:var(--disp);color:var(--acid);font-size:16px;}
+.modal .stats-mini span{font-size:9.5px;color:var(--ink-2);letter-spacing:.08em;}
+
+/* utility fade-in */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease, transform .6s ease;}
+.reveal.in{opacity:1;transform:translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div class="scan"></div>
+<div class="vignette"></div>
+
+<header>
+  <nav class="wrap">
+    <div class="logo">
+      <b>SHINI<span>GAMI</span></b>
+      <small>AI AGENTS ECOSYSTEM</small>
+    </div>
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#agents">Agents</a>
+      <a href="#create">Create</a>
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="#docs">Docs</a>
+      <a href="#community">Community</a>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <button class="btn wallet" id="walletBtn">Connect Wallet</button>
+      <button class="burger" id="burgerBtn" aria-label="Menu">☰</button>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero" id="home" style="border-top:none;padding-top:56px;">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow">AI AGENTS ECOSYSTEM</span>
+        <h1 class="title">SHINIGAMI</h1>
+        <div class="tagline">BEYOND HUMAN. BUILT TO SERVE.</div>
+        <p class="lede">Shinigami is an AI Agent ecosystem where autonomous agents think, learn, and act on-chain to create real value in the Web3 world.</p>
+        <div class="cta-row">
+          <button class="btn btn-fill" id="exploreBtn">Explore Agents</button>
+          <a href="#create" class="link-arrow">Create Agent
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M1 5H15M15 5L11 1M15 5L11 9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </a>
+        </div>
+
+        <div class="stat-bar reveal">
+          <div><div class="stat-label">Total Agents</div><div class="stat-val" id="statAgents">0</div></div>
+          <div><div class="stat-label">Active Agents</div><div class="stat-val" id="statActive">0</div></div>
+          <div><div class="stat-label">Total Txns</div><div class="stat-val" id="statTxns">0</div></div>
+          <div><div class="stat-label">Value Locked</div><div class="stat-val" id="statTVL">$0</div></div>
+        </div>
+
+        <div class="index-row reveal">
+          <div class="index-left">
+            <div class="index-title">Shinigami Index <span class="live-dot"><i></i>LIVE</span></div>
+            <svg id="sparkline" viewBox="0 0 300 56" preserveAspectRatio="none"></svg>
+          </div>
+          <div class="index-right">
+            <div style="font-size:10px;color:var(--ink-2);letter-spacing:.1em;margin-bottom:4px;">SGMI</div>
+            <div class="index-num" id="idxVal">2,392.21</div>
+            <div class="index-delta" id="idxDelta">+12.43%</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="halo"></div>
+        <div class="figure-wrap">
+          <svg viewBox="0 0 200 260" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="glowEye" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#d4ffb0"/>
+                <stop offset="100%" stop-color="#a6ff00"/>
+              </radialGradient>
+            </defs>
+            <path d="M40 250 C40 180 30 140 46 90 C58 52 90 20 100 18 C110 20 142 52 154 90 C170 140 160 180 160 250 Z" fill="#0c1610" stroke="#25381f" stroke-width="1.5"/>
+            <path d="M62 110 C60 70 76 30 100 24 C124 30 140 70 138 110 C136 150 118 168 100 170 C82 168 64 150 62 110 Z" fill="#111d15" stroke="#2d4432" stroke-width="1.4"/>
+            <path d="M74 100 C74 78 84 60 100 58 C116 60 126 78 126 100 C126 118 116 128 100 130 C84 128 74 118 74 100 Z" fill="#0a120c" stroke="#243522" stroke-width="1"/>
+            <ellipse cx="85" cy="96" rx="7" ry="4" fill="url(#glowEye)"/>
+            <ellipse cx="115" cy="96" rx="7" ry="4" fill="url(#glowEye)"/>
+            <path d="M100 58 C96 24 100 8 108 2" stroke="#1b2c1b" stroke-width="10" fill="none" stroke-linecap="round"/>
+            <path d="M100 58 C102 20 118 4 132 -2" stroke="#141d15" stroke-width="14" fill="none" stroke-linecap="round" opacity="0"/>
+            <path d="M96 168 L104 168 L108 250 L92 250 Z" fill="#a6ff00" opacity=".85"/>
+            <path d="M150 130 L184 90 L188 96 L156 140 Z" fill="#1c2b1f" stroke="#3a5a2f" stroke-width="1"/>
+          </svg>
+        </div>
+
+        <div class="callout c1"><b>AI POWERED</b><span>Autonomous Intelligence</span></div>
+        <div class="callout c2"><b>ON-CHAIN</b><span>Transparent &amp; Decentralized</span></div>
+        <div class="callout c3"><b>SELF-IMPROVING</b><span>Learn, Evolve, Optimize</span></div>
+        <div class="callout c4"><b>MULTI-CHAIN</b><span>Solana · Ethereum · Base · More</span></div>
+
+        <div class="launch-box">
+          <div class="lb-title">SHINIGAMI PROTOCOL LAUNCH</div>
+          <div class="countdown" id="countdown">
+            <div><b id="cdDays">--</b><span>DAYS</span></div>
+            <div><b id="cdHours">--</b><span>HOURS</span></div>
+            <div><b id="cdMin">--</b><span>MIN</span></div>
+            <div><b id="cdSec">--</b><span>SEC</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOP AGENTS -->
+  <section id="agents">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="sec-eyebrow">HAND-PICKED</div>
+          <h2>Top AI Agents</h2>
+        </div>
+        <a href="#" class="view-all">View All →</a>
+      </div>
+      <div class="agent-grid" id="agentGrid"></div>
+    </div>
+  </section>
+
+  <!-- AGENT TYPES -->
+  <section id="types">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <div class="sec-eyebrow">CATEGORIES</div>
+          <h2>Explore Agent Types</h2>
+        </div>
+        <a href="#" class="view-all">View All →</a>
+      </div>
+      <div class="type-grid" id="typeGrid"></div>
+    </div>
+  </section>
+
+  <!-- FUTURE / CHAINS -->
+  <section id="ecosystem">
+    <div class="wrap">
+      <div class="future reveal">
+        <div>
+          <h3>Built for the Future</h3>
+          <p>Shinigami AI Agents operate across multiple chains and integrate with leading protocols to deliver autonomous intelligence at scale.</p>
+          <button class="btn">Explore Ecosystem</button>
+        </div>
+        <div>
+          <div class="chain-label">POWERED BY</div>
+          <div class="chain-row">
+            <div><i></i>Solana</div>
+            <div><i></i>Ethereum</div>
+            <div><i></i>Base</div>
+            <div><i></i>Avalanche</div>
+            <div><i></i>Polygon</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="community">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo"><b>SHINI<span>GAMI</span></b><small>AI AGENTS ECOSYSTEM</small></div>
+        <p>Where AI meets blockchain. Where agents create the future.</p>
+        <div class="socials">
+          <a href="#" aria-label="Discord">◈</a>
+          <a href="#" aria-label="Twitter">✕</a>
+          <a href="#" aria-label="Telegram">➤</a>
+          <a href="#" aria-label="GitHub">◎</a>
+        </div>
+      </div>
+      <div class="foot-col">
+        <h5>Ecosystem</h5>
+        <a href="#">All Agents</a><a href="#">Create Agent</a><a href="#">Ecosystem</a><a href="#">Leaderboard</a>
+      </div>
+      <div class="foot-col">
+        <h5>Resources</h5>
+        <a href="#" id="docsLink">Docs</a><a href="#">Whitepaper</a><a href="#">API</a><a href="#">Blog</a>
+      </div>
+      <div class="foot-col">
+        <h5>Community</h5>
+        <a href="#">Discord</a><a href="#">Twitter</a><a href="#">Telegram</a><a href="#">GitHub</a>
+      </div>
+      <div class="foot-col">
+        <h5>Stay Connected</h5>
+        <form class="subscribe" id="subForm">
+          <input type="email" placeholder="Enter your email" id="subEmail" required>
+          <button type="submit" aria-label="Subscribe">→</button>
+        </form>
+        <div class="sub-msg" id="subMsg"></div>
+      </div>
+    </div>
+    <div class="foot-bottom">© 2026 Shinigami AI Agents. All rights reserved.</div>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="portrait" id="modalPortrait"></div>
+    <h3 id="modalName"></h3>
+    <span class="tag" id="modalTag"></span>
+    <p class="desc" id="modalDesc"></p>
+    <div class="stats-mini">
+      <div><b id="modalPrice"></b><span>PRICE (SGMI)</span></div>
+      <div><b id="modalTxns"></b><span>TOTAL TXNS</span></div>
+      <div><b id="modalRank"></b><span>RANK</span></div>
+    </div>
+    <button class="btn btn-fill" style="width:100%;">Deploy Agent</button>
+  </div>
+</div>
+
+<script>
+/* ---------------- kanji background field ---------------- */
+(function kanjiField(){
+  const heroVisual = document.querySelector('.hero-visual');
+  if(!heroVisual) return;
+  const field = document.createElement('div');
+  field.className = 'kanji-field';
+  const glyphs = ['死','神','魂','業','刃'];
+  for(let i=0;i<10;i++){
+    const s = document.createElement('span');
+    s.textContent = glyphs[i % glyphs.length];
+    s.style.left = Math.random()*90+'%';
+    s.style.top = Math.random()*90+'%';
+    s.style.fontSize = (16+Math.random()*30)+'px';
+    s.style.animationDuration = (14+Math.random()*14)+'s';
+    field.appendChild(s);
+  }
+  heroVisual.prepend(field);
+})();
+
+/* ---------------- wallet connect ---------------- */
+const walletBtn = document.getElementById('walletBtn');
+let connected = false;
+walletBtn.addEventListener('click', () => {
+  connected = !connected;
+  if(connected){
+    const addr = '0x' + Array.from({length:4},()=>Math.floor(Math.random()*16).toString(16)).join('') + '…' + Array.from({length:4},()=>Math.floor(Math.random()*16).toString(16)).join('');
+    walletBtn.textContent = addr;
+    walletBtn.classList.add('connected');
+  } else {
+    walletBtn.textContent = 'Connect Wallet';
+    walletBtn.classList.remove('connected');
+  }
+});
+
+/* ---------------- mobile burger (simple toggle of nav-links display) ---------------- */
+const burgerBtn = document.getElementById('burgerBtn');
+const navLinks = document.querySelector('.nav-links');
+burgerBtn.addEventListener('click', () => {
+  const isOpen = navLinks.style.display === 'flex';
+  navLinks.style.cssText = isOpen ? '' : 'display:flex;flex-direction:column;position:absolute;top:72px;left:0;right:0;background:#060907;padding:20px 32px;border-bottom:1px solid var(--line);gap:18px;';
+});
+
+/* ---------------- animated stat counters ---------------- */
+function animateCount(el, target, opts={}){
+  const {duration=1400, prefix='', suffix='', decimals=0} = opts;
+  const start = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now-start)/duration);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = target*eased;
+    el.textContent = prefix + val.toLocaleString('en-US', {minimumFractionDigits:decimals, maximumFractionDigits:decimals}) + suffix;
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+const statObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if(entry.isIntersecting){
+      animateCount(document.getElementById('statAgents'), 10000, {suffix:'+'});
+      animateCount(document.getElementById('statActive'), 4362);
+      animateCount(document.getElementById('statTxns'), 2.4, {decimals:1, suffix:'M+'});
+      animateCount(document.getElementById('statTVL'), 34.7, {prefix:'$', decimals:1, suffix:'M'});
+      statObserver.disconnect();
+    }
+  });
+}, {threshold:0.4});
+statObserver.observe(document.querySelector('.stat-bar'));
+
+/* ---------------- reveal on scroll ---------------- */
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('in'); });
+}, {threshold:0.15});
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+/* ---------------- countdown timer ---------------- */
+const launchTarget = Date.now() + ((12*24*60*60 + 3*60*60 + 11*60 + 43) * 1000);
+function updateCountdown(){
+  const diff = Math.max(0, launchTarget - Date.now());
+  const d = Math.floor(diff/86400000);
+  const h = Math.floor((diff%86400000)/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  const s = Math.floor((diff%60000)/1000);
+  document.getElementById('cdDays').textContent = String(d).padStart(2,'0');
+  document.getElementById('cdHours').textContent = String(h).padStart(2,'0');
+  document.getElementById('cdMin').textContent = String(m).padStart(2,'0');
+  document.getElementById('cdSec').textContent = String(s).padStart(2,'0');
+}
+updateCountdown();
+setInterval(updateCountdown, 1000);
+
+/* ---------------- live sparkline + index ticker ---------------- */
+const svgNS = 'http://www.w3.org/2000/svg';
+const sparkline = document.getElementById('sparkline');
+let points = Array.from({length:40}, (_,i) => 28 + Math.sin(i/3)*10 + Math.random()*6);
+let idxValue = 2392.21;
+
+function drawSparkline(){
+  sparkline.innerHTML = '';
+  const w = 300, h = 56;
+  const step = w/(points.length-1);
+  const path = points.map((p,i) => `${i===0?'M':'L'}${(i*step).toFixed(1)},${(h-p).toFixed(1)}`).join(' ');
+  const areaPath = path + ` L${w},${h} L0,${h} Z`;
+
+  const grad = document.createElementNS(svgNS,'linearGradient');
+  grad.setAttribute('id','sparkGrad');
+  grad.setAttribute('x1','0'); grad.setAttribute('y1','0'); grad.setAttribute('x2','0'); grad.setAttribute('y2','1');
+  grad.innerHTML = `<stop offset="0%" stop-color="#a6ff00" stop-opacity="0.35"/><stop offset="100%" stop-color="#a6ff00" stop-opacity="0"/>`;
+  const defs = document.createElementNS(svgNS,'defs');
+  defs.appendChild(grad);
+  sparkline.appendChild(defs);
+
+  const area = document.createElementNS(svgNS,'path');
+  area.setAttribute('d', areaPath);
+  area.setAttribute('fill', 'url(#sparkGrad)');
+  sparkline.appendChild(area);
+
+  const line = document.createElementNS(svgNS,'path');
+  line.setAttribute('d', path);
+  line.setAttribute('fill', 'none');
+  line.setAttribute('stroke', '#a6ff00');
+  line.setAttribute('stroke-width', '1.6');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('stroke-linejoin', 'round');
+  sparkline.appendChild(line);
+
+  const lastX = (points.length-1)*step;
+  const lastY = h - points[points.length-1];
+  const dot = document.createElementNS(svgNS,'circle');
+  dot.setAttribute('cx', lastX); dot.setAttribute('cy', lastY); dot.setAttribute('r','3');
+  dot.setAttribute('fill','#a6ff00');
+  sparkline.appendChild(dot);
+}
+drawSparkline();
+
+setInterval(() => {
+  const last = points[points.length-1];
+  const next = Math.max(6, Math.min(50, last + (Math.random()-0.48)*8));
+  points.push(next);
+  points.shift();
+  drawSparkline();
+
+  const delta = (next-last)/10;
+  idxValue = Math.max(100, idxValue + delta*3);
+  document.getElementById('idxVal').textContent = idxValue.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const deltaEl = document.getElementById('idxDelta');
+  const pct = (delta*1.4);
+  deltaEl.textContent = (pct>=0?'+':'') + pct.toFixed(2) + '%';
+  deltaEl.style.color = pct >= 0 ? 'var(--acid)' : 'var(--warn)';
+}, 1800);
+
+/* ---------------- agent portraits (generated SVG icons) ---------------- */
+function agentIcon(kind){
+  const icons = {
+    hood: `<path d="M50 15c-18 0-28 14-28 32 0 14 6 24 6 38h44c0-14 6-24 6-38 0-18-10-32-28-32Z" fill="#0d1a11" stroke="#2d4432" stroke-width="1.4"/>
+      <circle cx="38" cy="52" r="4" fill="#a6ff00"/><circle cx="62" cy="52" r="4" fill="#a6ff00"/>`,
+    mask: `<path d="M50 12C34 12 24 26 24 44c0 20 12 32 26 34 14-2 26-14 26-34 0-18-10-32-26-32Z" fill="#101f14" stroke="#2d4432" stroke-width="1.4"/>
+      <path d="M50 12v66" stroke="#2d4432" stroke-width="1"/>
+      <circle cx="40" cy="46" r="3.4" fill="#a6ff00"/><circle cx="60" cy="46" r="3.4" fill="#a6ff00"/>
+      <path d="M28 22c8-6 34-6 44 4" stroke="#a6ff00" stroke-width="1" opacity=".4" fill="none"/>`,
+    halo: `<circle cx="50" cy="18" r="16" fill="none" stroke="#a6ff00" stroke-width="2.4" opacity=".8"/>
+      <path d="M50 30c-16 0-24 14-24 30 0 10 4 18 4 24h40c0-6 4-14 4-24 0-16-8-30-24-30Z" fill="#0d1a11" stroke="#2d4432" stroke-width="1.4"/>
+      <circle cx="41" cy="58" r="3.6" fill="#a6ff00"/><circle cx="59" cy="58" r="3.6" fill="#a6ff00"/>
+      <path d="M28 46c6-3 10 6 6 10" stroke="#2d4432" stroke-width="1.4" fill="none"/>`,
+    sentinel: `<path d="M50 10 78 24v22c0 22-12 36-28 40-16-4-28-18-28-40V24Z" fill="#0d1a11" stroke="#2d4432" stroke-width="1.4"/>
+      <circle cx="50" cy="46" r="5" fill="#a6ff00"/>`
+  };
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${icons[kind]}</svg>`;
+}
+
+const agents = [
+  {name:'Abyss Watcher', tag:'Trading', desc:'Market analyst and DeFi trading expert.', price:'4.25', icon:'hood', txns:'182K', rank:'#03'},
+  {name:'Null Pointer', tag:'Developer', desc:'Smart contract auditor and code optimization agent.', price:'3.80', icon:'mask', txns:'96K', rank:'#12'},
+  {name:'Soul Harvester', tag:'Collector', desc:'NFT sniper and rare asset acquisition specialist.', price:'6.66', icon:'halo', txns:'241K', rank:'#01'},
+  {name:'Kyokai Sentinel', tag:'Security', desc:'Blockchain security agent and threat detector.', price:'5.10', icon:'sentinel', txns:'157K', rank:'#05'}
+];
+
+const agentGrid = document.getElementById('agentGrid');
+agents.forEach((a, i) => {
+  const card = document.createElement('div');
+  card.className = 'agent-card reveal';
+  card.style.transitionDelay = (i*0.06)+'s';
+  card.innerHTML = `
+    <div class="portrait">${agentIcon(a.icon)}</div>
+    <div class="agent-body">
+      <div class="agent-name-row"><h3>${a.name}</h3><span class="tag">${a.tag}</span></div>
+      <div class="agent-desc">${a.desc}</div>
+      <div class="agent-price">◈ <b>${a.price}</b> SGMI</div>
+      <button class="btn view-agent-btn">View Agent</button>
+    </div>`;
+  card.querySelector('.view-agent-btn').addEventListener('click', () => openModal(a));
+  card.addEventListener('click', (e) => { if(e.target.tagName !== 'BUTTON') openModal(a); });
+  agentGrid.appendChild(card);
+  revealObserver.observe(card);
+});
+
+/* ---------------- modal ---------------- */
+const modalOverlay = document.getElementById('modalOverlay');
+function openModal(a){
+  document.getElementById('modalPortrait').innerHTML = agentIcon(a.icon);
+  document.getElementById('modalName').textContent = a.name;
+  document.getElementById('modalTag').textContent = a.tag;
+  document.getElementById('modalDesc').textContent = a.desc;
+  document.getElementById('modalPrice').textContent = a.price;
+  document.getElementById('modalTxns').textContent = a.txns;
+  document.getElementById('modalRank').textContent = a.rank;
+  modalOverlay.classList.add('open');
+}
+document.getElementById('modalClose').addEventListener('click', () => modalOverlay.classList.remove('open'));
+modalOverlay.addEventListener('click', (e) => { if(e.target === modalOverlay) modalOverlay.classList.remove('open'); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') modalOverlay.classList.remove('open'); });
+
+/* ---------------- explore button scrolls ---------------- */
+document.getElementById('exploreBtn').addEventListener('click', () => {
+  document.getElementById('agents').scrollIntoView({behavior:'smooth'});
+});
+
+/* ---------------- agent type grid ---------------- */
+const types = [
+  {name:'Trading Agents', desc:'Analyze markets and execute trades', icon:'📈'},
+  {name:'DeFi Agents', desc:'Manage yield, liquidity and protocols', icon:'◈'},
+  {name:'Developer Agents', desc:'Build, audit and deploy smart contracts', icon:'⌘'},
+  {name:'Research Agents', desc:'Gather insights and on-chain data', icon:'◎'},
+  {name:'Security Agents', desc:'Protect protocols and users', icon:'⛊'},
+  {name:'Social Agents', desc:'Engage, moderate and build communities', icon:'◇'},
+  {name:'Content Agents', desc:'Create content and on-chain identity', icon:'✎'},
+  {name:'Autonomous Agents', desc:'Fully autonomous and self-evolving', icon:'⬡'}
+];
+const typeGrid = document.getElementById('typeGrid');
+types.forEach((t,i) => {
+  const el = document.createElement('div');
+  el.className = 'type-card reveal';
+  el.style.transitionDelay = (i*0.04)+'s';
+  el.innerHTML = `<div class="icon">${t.icon}</div><div><h4>${t.name.toUpperCase()}</h4><p>${t.desc}</p></div>`;
+  typeGrid.appendChild(el);
+  revealObserver.observe(el);
+});
+
+/* ---------------- newsletter form ---------------- */
+const subForm = document.getElementById('subForm');
+const subMsg = document.getElementById('subMsg');
+subForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const email = document.getElementById('subEmail').value.trim();
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if(valid){
+    subMsg.textContent = '✓ Subscribed. Welcome to the ecosystem.';
+    subMsg.style.color = 'var(--acid)';
+    subForm.reset();
+  } else {
+    subMsg.textContent = 'Enter a valid email address.';
+    subMsg.style.color = 'var(--warn)';
+  }
+});
+</script>
+</body>
+</html>
